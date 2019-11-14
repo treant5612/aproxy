@@ -12,6 +12,10 @@ type Encipher interface {
 	Decrypt(data []byte) (plainText []byte)
 }
 
+func NewAesEncipher(key string, digit ...int) (Encipher, error) {
+	return NewAesCfbEncipher(key, digit...)
+}
+
 type AesCfbEncipher struct {
 	key          []byte
 	block        cipher.Block

@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 	"net"
 	"strconv"
 )
@@ -217,7 +216,6 @@ func readAddr(r *bufio.Reader, atype byte) (string, error) {
 
 func (r *SocksRequest) BuildTransport() (err error) {
 	trans, err := transport.NewLocalTransport(r.DstAddr, r.DstPort)
-	log.Println("build trans",trans )
 	if err != nil {
 		return err
 	}
@@ -239,7 +237,6 @@ func (r *SocksRequest) requestRespond(rep int) error {
 		_,err :=r.reply(response)
 		return err
 	}
-	log.Println("trans",r.trans)
 	addr, port := r.trans.BindAddress(), r.trans.BindPort()
 	copy(addr[0:4], response[4:8])
 	response[len(response)-2], response[len(response)-1] = byte(port>>8), byte(port&0xff)
