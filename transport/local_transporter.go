@@ -14,12 +14,16 @@ type LocalTransporter struct {
 
 func (t *LocalTransporter) Transport(src io.ReadWriter) error {
 	defer t.targetConn.Close()
+	return doProxy(src, t.targetConn)
+}
+
+func doProxy(src io.ReadWriter, dst io.ReadWriter) error {
 	ch := make(chan error, 2)
 	go func() {
-		ch <- proxy(t.targetConn, src)
+		ch <- proxy(dst, src)
 	}()
 	go func() {
-		ch <- proxy(src, t.targetConn)
+		ch <- proxy(src, dst)
 	}()
 	for i := 0; i < 2; i++ {
 		err := <-ch
@@ -28,14 +32,14 @@ func (t *LocalTransporter) Transport(src io.ReadWriter) error {
 		}
 	}
 	return nil
-}
 
+}
 func proxy(src io.Reader, dst io.Writer) error {
 	_, err := io.Copy(dst, src)
 	return err
 }
 
-func NewLocalTransport(dstHost string, dstPort string) (*LocalTransporter, error) {
+func NewLocalTransport(dstHost string, dstPort string) (Transporter, error) {
 	conn, err := net.Dial("tcp", net.JoinHostPort(dstHost, dstPort))
 	if err != nil {
 		return nil, err

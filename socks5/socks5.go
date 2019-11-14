@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"log"
 	"net"
 	"strconv"
 )
@@ -16,6 +17,10 @@ type Server struct {
 type Config struct {
 }
 
+func (s *Server) newTransporter(host string, port string) (transport.Transporter, error) {
+	//return transport.NewLocalTransport(host, port)
+	return transport.NewRemoteTransporter("testkey", "localhost", "4721", host, port)
+}
 func NewServer() *Server {
 	return &Server{
 		nil,
@@ -115,9 +120,10 @@ func (s *Server) handleSocks(request *SocksRequest) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("proxy: %s : %s\n", request.DstAddr, request.DstPort)
 	//准备代理数据传输
 	err = request.BuildTransport()
-	if err!=nil{
+	if err != nil {
 		request.requestRespond(1)
 		return err
 	}
@@ -215,7 +221,7 @@ func readAddr(r *bufio.Reader, atype byte) (string, error) {
 }
 
 func (r *SocksRequest) BuildTransport() (err error) {
-	trans, err := transport.NewLocalTransport(r.DstAddr, r.DstPort)
+	trans, err := r.newTransporter(r.DstAddr, r.DstPort)
 	if err != nil {
 		return err
 	}
@@ -234,7 +240,7 @@ func (r *SocksRequest) requestRespond(rep int) error {
 	case 0:
 	default:
 		response[1] = 0x01
-		_,err :=r.reply(response)
+		_, err := r.reply(response)
 		return err
 	}
 	addr, port := r.trans.BindAddress(), r.trans.BindPort()
