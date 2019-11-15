@@ -1,24 +1,25 @@
 package main
 
 import (
-	"aproxy/socks5"
-	"aproxy/transport"
+	"aproxy/config"
+	"flag"
 	"log"
-	"time"
+	"os"
 )
 
-func main() {
+var configPath string
+
+func init() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	go asRemoteTransporter()
-	asLocalSocksServer()
-	time.Sleep(1 * time.Hour)
+	flag.StringVar(&configPath, "c", "config.json", "filepath of config.json")
+	flag.Parse()
 }
-func asRemoteTransporter() {
-	server := &transport.RemoteTransporterServer{Key: "testkey"}
-	err := server.ListenAndServe("tcp", ":4721")
-	log.Println(err)
-}
-func asLocalSocksServer() {
-	server := socks5.NewServer()
-	server.ListenAndServe("tcp", ":10909")
+
+func main() {
+	c, err := config.ParseConfigFromFile(configPath)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+	c.Run()
 }

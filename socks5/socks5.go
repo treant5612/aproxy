@@ -10,25 +10,28 @@ import (
 	"strconv"
 )
 
-type Server struct {
-	*Config
-	method byte
-}
-type Config struct {
+type SocksServer struct {
+	method    byte
+	transConf *transport.TransConf
 }
 
-func (s *Server) newTransporter(host string, port string) (transport.Transporter, error) {
-	//return transport.NewLocalTransport(host, port)
-	return transport.NewRemoteTransporter("testkey", "localhost", "4721", host, port)
+func (s *SocksServer) newTransporter(host string, port string) (transport.Transporter, error) {
+	return s.transConf.NewTransporter(host, port)
 }
-func NewServer() *Server {
-	return &Server{
-		nil,
-		METHOD_NO_AUTH,
+func NewServer(method string, transConf *transport.TransConf) *SocksServer {
+	s := new(SocksServer)
+	switch method {
+	case "PASSWORD":
+		s.method = METHOD_USER_PWD
+	default:
+		s.method = METHOD_NO_AUTH
 	}
+	s.transConf = transConf
+	return s
+
 }
 
-func (s *Server) Method() byte {
+func (s *SocksServer) Method() byte {
 	return s.method
 }
 
@@ -43,7 +46,7 @@ const (
 )
 
 type SocksRequest struct {
-	*Server
+	*SocksServer
 	source    net.Conn
 	bufReader *bufio.Reader
 	version   byte
@@ -80,10 +83,10 @@ var methodNotSupported = SocksError{
 	response: []byte{SocksVer, METHOD_NO_ACCEPTABLE},
 }
 
-func (s *Server) NewSocksRequest(conn net.Conn) *SocksRequest {
-	return &SocksRequest{Server: s, source: conn, bufReader: bufio.NewReader(conn)}
+func (s *SocksServer) NewSocksRequest(conn net.Conn) *SocksRequest {
+	return &SocksRequest{SocksServer: s, source: conn, bufReader: bufio.NewReader(conn)}
 }
-func (s *Server) ListenAndServe(network string, address string) error {
+func (s *SocksServer) ListenAndServe(network string, address string) error {
 	listener, err := net.Listen(network, address)
 	if err != nil {
 		return err
@@ -97,7 +100,7 @@ func (s *Server) ListenAndServe(network string, address string) error {
 	}
 	return nil
 }
-func (s *Server) handle(conn net.Conn) {
+func (s *SocksServer) handle(conn net.Conn) {
 	defer conn.Close()
 	request := s.NewSocksRequest(conn)
 	err := s.handleSocks(request)
@@ -109,7 +112,7 @@ func (s *Server) handle(conn net.Conn) {
 }
 
 //socks5 protocol :rfc1928
-func (s *Server) handleSocks(request *SocksRequest) error {
+func (s *SocksServer) handleSocks(request *SocksRequest) error {
 	//验证
 	err := request.authentication()
 	if err != nil {
