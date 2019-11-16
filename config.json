@@ -1,13 +1,17 @@
 {
-	"Socks": {
-		"Local": false,
-		"Port": "1080",
-		"Auth": "",
-		"Accounts": []
-	},
-	"Transporter": {
-		"Key": "any authkey",
-		"Address": "server host",
-		"Port": "10808"
-	}
+  "Socks": {
+    "Local": false,
+    "Port": "1080",
+    "Auth": "",
+    "Accounts": []
+  },
+  "Transporter": {
+    "Key": "any authkey",
+    "Address": "server host",
+    "Port": "10808"
+  },
+  "Server": {
+    "Key": "any authkey",
+    "Port": "10808"
+  }
 }
