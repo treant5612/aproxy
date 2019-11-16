@@ -4,6 +4,7 @@ import (
 	"aproxy/transport"
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -36,8 +37,11 @@ func (s *SocksServer) Method() byte {
 }
 
 const (
-	SocksVer byte = 0x05
+	SocksVer  byte = 0x05
+	SocksVer4 byte = 0x04
 )
+const socks4_request_granted byte = 90
+
 const (
 	METHOD_NO_AUTH       byte = 0x00
 	METHOD_GSSAPI        byte = 0x01
@@ -56,6 +60,9 @@ type SocksRequest struct {
 	DstAddr   string
 	DstPort   string
 	trans     transport.Transporter
+	//for socks4
+	addrBytes []byte
+	portBytes []byte
 }
 
 const (
@@ -96,6 +103,7 @@ func (s *SocksServer) ListenAndServe(network string, address string) error {
 		if err != nil {
 			return err
 		}
+		log.Println("Accept from ", conn.RemoteAddr())
 		go s.handle(conn)
 	}
 	return nil
@@ -109,6 +117,7 @@ func (s *SocksServer) handle(conn net.Conn) {
 			request.reply(sErr.response)
 		}
 	}
+	log.Println(err)
 }
 
 //socks5 protocol :rfc1928
@@ -145,20 +154,26 @@ func (r *SocksRequest) reply(data []byte) (int, error) {
 
 //验证过程
 func (r *SocksRequest) authentication() error {
-	b := make([]byte, 32)
+	b := make([]byte, 64)
 	n, err := r.bufReader.Read(b)
 	if err != nil {
 		return err
 	}
 	b = b[:n]
 	r.version = b[0]
-	if r.version != SocksVer {
+	log.Println(r.version)
+	if r.version != SocksVer && r.version != SocksVer4 {
 		return methodNotSupported
 	}
+	if r.version == SocksVer4 {
+		socks4Request(b, r)
+		return nil
+	}
+
 	if !bytes.ContainsRune(b[2:], rune(r.Method())) {
 		return methodNotSupported
 	}
-	_, err = r.reply([]byte{SocksVer, r.Method()})
+	_, err = r.reply([]byte{r.version, r.Method()})
 	if err != nil {
 		return err
 	}
@@ -171,7 +186,26 @@ func (r *SocksRequest) authentication() error {
 	return nil
 }
 
+func socks4Request(b []byte, r *SocksRequest) {
+
+	//+----+----+----+----+----+----+----+----+----+----+....+----+
+	//| VN | CD | DSTPORT |      DSTIP        | USERID       |NULL|
+	//	+----+----+----+----+----+----+----+----+----+----+....+----+
+	//   1    1      2              4           variable       1
+	r.method = METHOD_NO_AUTH
+	r.cmd = b[1]
+	r.DstPort = strconv.Itoa(int(b[2])<<8 | int(b[3]))
+	r.DstAddr = fmt.Sprintf("%d.%d.%d.%d", b[4], b[5], b[6], b[7])
+	r.addrBytes, r.portBytes = make([]byte, 4), make([]byte, 2)
+	copy(r.addrBytes, b[4:8])
+	copy(r.portBytes, b[2:4])
+	return
+}
+
 func (r *SocksRequest) requestDetail() (err error) {
+	if r.version == SocksVer4 {
+		return nil
+	}
 	/*
 		+-----+-----+-------+------+----------+----------+
 		| VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
@@ -231,8 +265,25 @@ func (r *SocksRequest) BuildTransport() (err error) {
 	r.trans = trans
 	return nil
 }
-
+func socks4Reply(r *SocksRequest) []byte {
+	//+----+----+----+----+----+----+----+----+
+	//| VN | CD | DSTPORT |      DSTIP        |
+	//	+----+----+----+----+----+----+----+----+
+	//  1    1      2              4
+	reply := [8]byte{}
+	reply[0] = r.version
+	reply[1] = socks4_request_granted
+	copy(reply[2:4], r.portBytes)
+	copy(reply[4:8], r.addrBytes)
+	return reply[:]
+}
 func (r *SocksRequest) requestRespond(rep int) error {
+	if r.version == SocksVer4 {
+		reply := socks4Reply(r)
+		_, err := r.reply(reply)
+		return err
+	}
+
 	//	+----+-----+-------+------+----------+----------+
 	//	|VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
 	//	+----+-----+-------+------+----------+----------+
