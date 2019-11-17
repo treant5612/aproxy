@@ -1,7 +1,7 @@
 package socks5
 
 import (
-	"aproxy/transport"
+	"aproxy/tunnel"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -13,13 +13,13 @@ import (
 
 type SocksServer struct {
 	method    byte
-	transConf *transport.TransConf
+	transConf *tunnel.Conf
 }
 
-func (s *SocksServer) newTransporter(host string, port string) (transport.Transporter, error) {
-	return s.transConf.NewTransporter(host, port)
+func (s *SocksServer) newTransporter(host string, port string) (tunnel.Tunnel, error) {
+	return s.transConf.NewTunnel(host, port)
 }
-func NewServer(method string, transConf *transport.TransConf) *SocksServer {
+func NewServer(method string, transConf *tunnel.Conf) *SocksServer {
 	s := new(SocksServer)
 	switch method {
 	case "PASSWORD":
@@ -62,7 +62,7 @@ type SocksRequest struct {
 	cmd     byte //
 	rsv     byte
 	atyp    byte
-	trans   transport.Transporter
+	trans   tunnel.Tunnel
 	//for socks4
 	addrBytes []byte
 	portBytes []byte
@@ -119,8 +119,8 @@ func (s *SocksServer) handle(conn net.Conn) {
 		if sErr, ok := err.(SocksError); ok {
 			request.reply(sErr.response)
 		}
+		log.Println(err)
 	}
-	log.Println(err)
 }
 
 //socks5 protocol :rfc1928

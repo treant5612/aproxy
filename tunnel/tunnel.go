@@ -1,18 +1,19 @@
 package tunnel
 
 import (
+	"aproxy/filter"
 	"io"
 	"net"
 )
 
-type Transporter interface {
+type Tunnel interface {
 	Transport(writer io.ReadWriter) error
 	BindAddress() net.IP
 	BindPort() uint16
 }
 
-func NewTransConf(form, key, host, port string) *TransConf {
-	t := new(TransConf)
+func NewTunnelConf(form, key, host, port string) *Conf {
+	t := new(Conf)
 	t.form = form
 	t.key = key
 	t.serverPort = port
@@ -20,22 +21,19 @@ func NewTransConf(form, key, host, port string) *TransConf {
 	return t
 }
 
-type TransConf struct {
+type Conf struct {
 	form       string //  local remote
 	key        string
 	serverHost string
 	serverPort string
 }
 
-func (c *TransConf) NewTransporter(dstAddr string, dstPort string) (Transporter, error) {
+func (c *Conf) NewTunnel(dstAddr string, dstPort string) (Tunnel, error) {
 	if c == nil {
-		return NewLocalTransport(dstAddr, dstPort)
+		return NewLocalTunnel(dstAddr, dstPort)
 	}
-	switch c.form {
-	case "local":
-		return NewLocalTransport(dstAddr, dstPort)
-	default:
-		//remote
-		return NewRemoteTransporter(c.key, c.serverHost, c.serverPort, dstAddr, dstPort)
+	if filter.Proxy(dstAddr) {
+		return NewRemoteTunnel(c.key, c.serverHost, c.serverPort, dstAddr, dstPort)
 	}
+	return NewLocalTunnel(dstAddr, dstPort)
 }

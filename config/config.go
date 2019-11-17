@@ -1,8 +1,9 @@
 package config
 
 import (
+	"aproxy/filter"
 	"aproxy/socks5"
-	"aproxy/transport"
+	"aproxy/tunnel"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -12,20 +13,28 @@ import (
 )
 
 type Config struct {
+	Filter      string
 	Socks       *SocksConfig
-	Transporter *TransporterConfig
+	Transporter *TunnelConfig
 	Server      *ServerConfig
 }
 
 func (c *Config) Run() {
+	if c.Filter != "" {
+		if err := filter.Init(c.Filter); err != nil {
+			log.Printf("failed to use %s for proxy filter", c.Filter)
+		} else {
+			log.Printf("use %s as proxy filter", c.Filter)
+		}
+	}
 	SetWindowsProxy(c.Socks.Port)
 	defer UnsetWindowProxy()
 
 	wg := &sync.WaitGroup{}
-	var transConf *transport.TransConf = nil
+	var transConf *tunnel.Conf = nil
 	if c.Transporter != nil {
 
-		transConf = transport.NewTransConf("", c.Transporter.Key, c.Transporter.Address, c.Transporter.Port)
+		transConf = tunnel.NewTunnelConf("", c.Transporter.Key, c.Transporter.Address, c.Transporter.Port)
 	}
 
 	if c.Socks != nil {
@@ -37,11 +46,14 @@ func (c *Config) Run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			socks.ListenAndServe("tcp", net.JoinHostPort(listenAddr, c.Socks.Port))
+			err := socks.ListenAndServe("tcp", net.JoinHostPort(listenAddr, c.Socks.Port))
+			if err != nil {
+				log.Println(err)
+			}
 		}()
 	}
 	if c.Server != nil {
-		server := new(transport.RemoteTransporterServer)
+		server := new(tunnel.RemoteTunnelServer)
 		server.Key = c.Server.Key
 		wg.Add(1)
 		go func() {
@@ -81,7 +93,7 @@ type SocksConfig struct {
 	Auth     string
 	Accounts []string
 }
-type TransporterConfig struct {
+type TunnelConfig struct {
 	Key     string
 	Address string
 	Port    string

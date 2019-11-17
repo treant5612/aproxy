@@ -7,12 +7,12 @@ import (
 	"strings"
 )
 
-type LocalTransporter struct {
+type LocalTunnel struct {
 	//代理目的地
 	targetConn net.Conn
 }
 
-func (t *LocalTransporter) Transport(src io.ReadWriter) error {
+func (t *LocalTunnel) Transport(src io.ReadWriter) error {
 	defer t.targetConn.Close()
 	return doProxy(src, t.targetConn)
 }
@@ -39,18 +39,18 @@ func proxy(src io.Reader, dst io.Writer) error {
 	return err
 }
 
-func NewLocalTransport(dstHost string, dstPort string) (Transporter, error) {
+func NewLocalTunnel(dstHost string, dstPort string) (Tunnel, error) {
 	conn, err := net.Dial("tcp", net.JoinHostPort(dstHost, dstPort))
 	if err != nil {
 		return nil, err
 	}
-	return &LocalTransporter{conn}, nil
+	return &LocalTunnel{conn}, nil
 }
 
-func (t *LocalTransporter) BindAddress() net.IP {
+func (t *LocalTunnel) BindAddress() net.IP {
 	return net.IPv4(127, 0, 0, 1)
 }
-func (t *LocalTransporter) BindPort() uint16 {
+func (t *LocalTunnel) BindPort() uint16 {
 	n, err := strconv.Atoi(strings.Split(t.targetConn.LocalAddr().String(), ":")[1])
 	if err != nil {
 		return 0

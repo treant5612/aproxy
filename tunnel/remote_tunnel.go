@@ -11,11 +11,11 @@ import (
 
 var headerSign = []byte("proxy")
 
-type RemoteTransporterServer struct {
+type RemoteTunnelServer struct {
 	Key string
 }
 
-func (s *RemoteTransporterServer) ListenAndServe(network string, address string) (err error) {
+func (s *RemoteTunnelServer) ListenAndServe(network string, address string) (err error) {
 	listener, err := net.Listen(network, address)
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func (s *RemoteTransporterServer) ListenAndServe(network string, address string)
 		go s.handle(conn)
 	}
 }
-func (s *RemoteTransporterServer) handle(conn net.Conn) (err error) {
+func (s *RemoteTunnelServer) handle(conn net.Conn) (err error) {
 	defer conn.Close()
 	erw, err := NewEncodeReadWriter(conn, s.Key)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *RemoteTransporterServer) handle(conn net.Conn) (err error) {
 	port := strconv.Itoa(int(portAddr[0])<<8 + int(portAddr[1]))
 	addr := string(portAddr[2:])
 
-	local, err := NewLocalTransport(addr, port)
+	local, err := NewLocalTunnel(addr, port)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ type RemoteTransporterClient struct {
 	dstPort    string
 }
 
-func NewRemoteTransporter(key, remoteAddr, remotePort, dstAddr, dstPort string) (Transporter, error) {
+func NewRemoteTunnel(key, remoteAddr, remotePort, dstAddr, dstPort string) (Tunnel, error) {
 	return &RemoteTransporterClient{
 		key:        key,
 		serverAddr: remoteAddr,
