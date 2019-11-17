@@ -1,4 +1,4 @@
-package transport
+package tunnel
 
 import (
 	"aproxy/encryption"
