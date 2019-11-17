@@ -49,17 +49,20 @@ const (
 	METHOD_NO_ACCEPTABLE byte = 0xff
 )
 
-type SocksRequest struct {
+type CommonRequest struct {
 	*SocksServer
 	source    net.Conn
 	bufReader *bufio.Reader
-	version   byte
-	cmd       byte //
-	rsv       byte
-	atyp      byte
 	DstAddr   string
 	DstPort   string
-	trans     transport.Transporter
+}
+type SocksRequest struct {
+	*CommonRequest
+	version byte
+	cmd     byte //
+	rsv     byte
+	atyp    byte
+	trans   transport.Transporter
 	//for socks4
 	addrBytes []byte
 	portBytes []byte
@@ -90,8 +93,8 @@ var methodNotSupported = SocksError{
 	response: []byte{SocksVer, METHOD_NO_ACCEPTABLE},
 }
 
-func (s *SocksServer) NewSocksRequest(conn net.Conn) *SocksRequest {
-	return &SocksRequest{SocksServer: s, source: conn, bufReader: bufio.NewReader(conn)}
+func (s *SocksServer) NewCommonRequest(conn net.Conn) *CommonRequest {
+	return &CommonRequest{SocksServer: s, source: conn, bufReader: bufio.NewReader(conn)}
 }
 func (s *SocksServer) ListenAndServe(network string, address string) error {
 	listener, err := net.Listen(network, address)
@@ -110,7 +113,7 @@ func (s *SocksServer) ListenAndServe(network string, address string) error {
 }
 func (s *SocksServer) handle(conn net.Conn) {
 	defer conn.Close()
-	request := s.NewSocksRequest(conn)
+	request := s.NewCommonRequest(conn)
 	err := s.handleSocks(request)
 	if err != nil {
 		if sErr, ok := err.(SocksError); ok {
@@ -121,10 +124,20 @@ func (s *SocksServer) handle(conn net.Conn) {
 }
 
 //socks5 protocol :rfc1928
-func (s *SocksServer) handleSocks(request *SocksRequest) error {
-	//验证
-	err := request.authentication()
+func (s *SocksServer) handleSocks(req *CommonRequest) (err error) {
+	//新增HTTP代理验证
+	b, err := readHeader(req.bufReader)
 	if err != nil {
+		return err
+	}
+	if isHttpRequest(b) {
+		return doHttpProxy(b, req)
+	}
+	request := &SocksRequest{CommonRequest: req}
+	//验证
+	err = request.authentication(b)
+	if err != nil {
+		log.Printf("%s\b%v", b, b)
 		return err
 	}
 	//接收请求
@@ -132,7 +145,7 @@ func (s *SocksServer) handleSocks(request *SocksRequest) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("proxy: %s : %s\n", request.DstAddr, request.DstPort)
+	log.Printf("socks: %s : %s\n", request.DstAddr, request.DstPort)
 	//准备代理数据传输
 	err = request.BuildTransport()
 	if err != nil {
@@ -147,21 +160,28 @@ func (s *SocksServer) handleSocks(request *SocksRequest) error {
 	err = request.trans.Transport(request.source)
 	return err
 }
+func readHeader(reader *bufio.Reader) ([]byte, error) {
+	var b []byte
+	for {
+		buf, isPrefix, err := reader.ReadLine()
+		if err != nil {
+			return buf, err
+		}
+		b = append(b, buf...)
+		if !isPrefix {
+			break
+		}
+	}
+	return b, nil
+}
 
-func (r *SocksRequest) reply(data []byte) (int, error) {
+func (r *CommonRequest) reply(data []byte) (int, error) {
 	return r.source.Write(data)
 }
 
 //验证过程
-func (r *SocksRequest) authentication() error {
-	b := make([]byte, 64)
-	n, err := r.bufReader.Read(b)
-	if err != nil {
-		return err
-	}
-	b = b[:n]
+func (r *SocksRequest) authentication(b []byte) (err error) {
 	r.version = b[0]
-	log.Println(r.version)
 	if r.version != SocksVer && r.version != SocksVer4 {
 		return methodNotSupported
 	}
