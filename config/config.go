@@ -18,6 +18,9 @@ type Config struct {
 }
 
 func (c *Config) Run() {
+	SetWindowsProxy(c.Socks.Port)
+	defer UnsetWindowProxy()
+
 	wg := &sync.WaitGroup{}
 	var transConf *transport.TransConf = nil
 	if c.Transporter != nil {
