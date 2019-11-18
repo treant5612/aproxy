@@ -81,6 +81,9 @@ func (r *Rules) add(reg *regexp.Regexp, raw []byte, key string) {
 
 func (r Rules) Test(s string) bool {
 	//todo 由于过滤列表大部分为完整的域名，可以用hash表进行查找而无需作为正则进行遍历
+	if plainRules.contains(s) {
+		return true
+	}
 	for _, fr := range r.rules {
 		if fr.reg.MatchString(s) {
 			return true
@@ -115,6 +118,13 @@ func toRegex(line []byte) {
 		str = adbRule3.ReplaceAllString(str, "${1}")
 	}
 	if !strings.ContainsAny(str, "*^") {
+		reg, err := regexp.Compile(str)
+		if err != nil {
+			log.Println(str)
+			return
+		}
+		plainRules.add(&filterRule{reg, line, str,})
+		return
 	}
 	str = strings.ReplaceAll(str, ".", `\.`)
 	reg, err := regexp.Compile(str)
@@ -123,4 +133,64 @@ func toRegex(line []byte) {
 		return
 	}
 	rules.add(reg, line, "")
+}
+
+type plainRuleList struct {
+	m map[uint][]*filterRule
+}
+
+var plainRules *plainRuleList = newPlainRules()
+
+func newPlainRules() *plainRuleList {
+	m := make(map[uint][]*filterRule)
+	return &plainRuleList{m}
+}
+
+func (p *plainRuleList) add(rule *filterRule) {
+	var key string
+	if len(rule.key) < 8 {
+		key = rule.key
+	} else {
+		key = rule.key[:8]
+	}
+	h := hash(key)
+	p.m[h] = append(p.m[h], rule)
+}
+
+func (p *plainRuleList) contains(str string) bool {
+	var hashes = make([]uint, 0)
+	if len(str) < 8 {
+		hashes = append(hashes, hash(str))
+	} else {
+		h0 := hash(str[:8])
+		hashes = append(hashes, h0)
+		for i := 0; i < len(str)-8; i++ {
+			h := (hashes[i]-uint(str[i])*prime7)*primeRK + uint(str[i+8])
+			hashes = append(hashes, h)
+		}
+
+	}
+	for _, v := range hashes {
+		if len(p.m[v]) > 0 {
+			for _, rule := range p.m[v] {
+				if rule.reg.MatchString(str) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+const primeRK = 16777619
+const prime7 uint = 12960422244463762683
+
+//var prime7 = primeRK * primeRK * primeRK * primeRK * primeRK * primeRK * primeRK
+
+func hash(str string) uint {
+	var n uint
+	for _, v := range str {
+		n = n*primeRK + uint(v)
+	}
+	return n
 }
