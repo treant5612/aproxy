@@ -1,9 +1,8 @@
 {
+  "Filter":"gfwlist.txt",
   "Socks": {
     "Local": false,
-    "Port": "1080",
-    "Auth": "",
-    "Accounts": []
+    "Port": "1080"
   },
   "Transporter": {
     "Key": "any authkey",

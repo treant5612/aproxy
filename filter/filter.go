@@ -80,7 +80,6 @@ func (r *Rules) add(reg *regexp.Regexp, raw []byte, key string) {
 }
 
 func (r Rules) Test(s string) bool {
-	//todo 由于过滤列表大部分为完整的域名，可以用hash表进行查找而无需作为正则进行遍历
 	if plainRules.contains(s) {
 		return true
 	}
@@ -117,7 +116,8 @@ func toRegex(line []byte) {
 	if adbRule3.MatchString(str) {
 		str = adbRule3.ReplaceAllString(str, "${1}")
 	}
-	if !strings.ContainsAny(str, "*^") {
+	if len(str) >= 8 || !strings.ContainsAny(str, "*^") {
+
 		reg, err := regexp.Compile(str)
 		if err != nil {
 			log.Println(str)

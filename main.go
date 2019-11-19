@@ -10,7 +10,7 @@ import (
 var configPath string
 
 func init() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	log.SetFlags(log.Llongfile | log.LstdFlags)
 	flag.StringVar(&configPath, "c", "config.json", "filepath of config.json")
 	flag.Parse()
 }

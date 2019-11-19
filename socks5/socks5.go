@@ -162,6 +162,19 @@ func (s *SocksServer) handleSocks(req *CommonRequest) (err error) {
 }
 func readHeader(reader *bufio.Reader) ([]byte, error) {
 	var b []byte
+	ver, err := reader.ReadByte()
+	reader.UnreadByte()
+	if err != nil {
+		return nil, err
+	}
+	if ver == 0x04 || ver == 0x05 {
+		buf := make([]byte, 128)
+		n, err := reader.Read(buf)
+		if err != nil {
+			return nil, err
+		}
+		return buf[:n], nil
+	}
 	for {
 		buf, isPrefix, err := reader.ReadLine()
 		if err != nil {
