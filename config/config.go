@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	AutoProxy   bool
 	Filter      string
 	Socks       *SocksConfig
 	Transporter *TunnelConfig
@@ -27,9 +28,10 @@ func (c *Config) Run() {
 			log.Printf("use %s as proxy filter", c.Filter)
 		}
 	}
-	SetWindowsProxy(c.Socks.Port)
-	defer UnsetWindowProxy()
-
+	if c.AutoProxy {
+		SetWindowsProxy(c.Socks.Port)
+		defer UnsetWindowProxy()
+	}
 	wg := &sync.WaitGroup{}
 	var transConf *tunnel.Conf = nil
 	if c.Transporter != nil {
