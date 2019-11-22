@@ -66,9 +66,8 @@ func TestEncodeReadWriter(t *testing.T) {
 }
 
 func TestRemoteTransporterServer(t *testing.T) {
-	server := &RemoteTunnelServer{Key: "testkey"}
-	go server.ListenAndServe("tcp",":4721")
-
+	server := &RemoteTunnelServer{&commonServer{"testkey"}}
+	go server.ListenAndServe("tcp", ":4721")
 
 }
 

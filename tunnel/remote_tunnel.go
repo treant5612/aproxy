@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"aproxy/encryption"
-	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -12,9 +11,15 @@ import (
 var headerSign = []byte("proxy")
 
 type RemoteTunnelServer struct {
-	Key string
+	*commonServer
 }
 
+func NewRemoteTunnelServer(key string) *RemoteTunnelServer {
+	server := new(RemoteTunnelServer)
+	server.commonServer = new(commonServer)
+	server.Key = key
+	return server
+}
 func (s *RemoteTunnelServer) ListenAndServe(network string, address string) (err error) {
 	listener, err := net.Listen(network, address)
 	if err != nil {
@@ -28,51 +33,18 @@ func (s *RemoteTunnelServer) ListenAndServe(network string, address string) (err
 		go s.handle(conn)
 	}
 }
-func (s *RemoteTunnelServer) handle(conn net.Conn) (err error) {
-	defer conn.Close()
-	erw, err := NewEncodeReadWriter(conn, s.Key)
-	if err != nil {
-		return err
-	}
-	header := [6]byte{}
-	_, err = io.ReadFull(erw, header[:])
-	if err != nil {
-		return err
-	}
-	if !bytes.HasPrefix(header[:], headerSign) {
-		return fmt.Errorf("wrong proxy header:%s", header)
-	}
-	addrLen := int(header[5])
-	portAddr := make([]byte, addrLen)
-	_, err = io.ReadFull(erw, portAddr)
-	if err != nil {
-		return err
-	}
-	port := strconv.Itoa(int(portAddr[0])<<8 + int(portAddr[1]))
-	addr := string(portAddr[2:])
-
-	local, err := NewLocalTunnel(addr, port)
-	if err != nil {
-		return err
-	}
-	return local.Transport(erw)
-}
 
 type RemoteTransporterClient struct {
-	key        string
+	*commonClient
 	serverAddr string
 	serverPort string
-	dstAddr    string
-	dstPort    string
 }
 
 func NewRemoteTunnel(key, remoteAddr, remotePort, dstAddr, dstPort string) (Tunnel, error) {
 	return &RemoteTransporterClient{
-		key:        key,
-		serverAddr: remoteAddr,
-		serverPort: remotePort,
-		dstAddr:    dstAddr,
-		dstPort:    dstPort,
+		&commonClient{key, dstPort, dstAddr},
+		remoteAddr,
+		remotePort,
 	}, nil
 }
 func (rc *RemoteTransporterClient) Transport(src io.ReadWriter) error {
@@ -81,7 +53,9 @@ func (rc *RemoteTransporterClient) Transport(src io.ReadWriter) error {
 		return err
 	}
 	defer conn.Close()
-	erw, err := NewEncodeReadWriter(conn, rc.key)
+	return rc.doTransport(conn, src)
+
+	erw, err := NewEncodeReadWriter(conn, rc.Key)
 	if err != nil {
 		return err
 	}

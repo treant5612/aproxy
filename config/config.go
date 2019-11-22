@@ -13,11 +13,12 @@ import (
 )
 
 type Config struct {
-	AutoProxy   bool
-	Filter      string
-	Socks       *SocksConfig
-	Transporter *TunnelConfig
-	Server      *ServerConfig
+	AutoProxy       bool
+	Filter          string
+	Socks           *SocksConfig
+	Transporter     *TunnelConfig
+	Server          *ServerConfig
+	WebsocketServer *WebsocketConfig
 }
 
 func (c *Config) Run() {
@@ -35,8 +36,7 @@ func (c *Config) Run() {
 	wg := &sync.WaitGroup{}
 	var transConf *tunnel.Conf = nil
 	if c.Transporter != nil {
-
-		transConf = tunnel.NewTunnelConf("", c.Transporter.Key, c.Transporter.Address, c.Transporter.Port)
+		transConf = tunnel.NewTunnelConf(c.Transporter.Type, c.Transporter.Key, c.Transporter.Address, c.Transporter.Port)
 	}
 
 	if c.Socks != nil {
@@ -55,8 +55,7 @@ func (c *Config) Run() {
 		}()
 	}
 	if c.Server != nil {
-		server := new(tunnel.RemoteTunnelServer)
-		server.Key = c.Server.Key
+		server := tunnel.NewRemoteTunnelServer(c.Server.Key)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -64,6 +63,18 @@ func (c *Config) Run() {
 				log.Println(err)
 			}
 		}()
+	}
+	if c.WebsocketServer != nil {
+		wsServer, err := tunnel.NewWebsocketServer(c.WebsocketServer.Key, "/")
+		if err != nil {
+			log.Println(err)
+		} else {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				wsServer.ListenWs("0.0.0.0:80")
+			}()
+		}
 	}
 	wg.Wait()
 }
@@ -96,11 +107,17 @@ type SocksConfig struct {
 	Accounts []string
 }
 type TunnelConfig struct {
+	Type    string
 	Key     string
 	Address string
 	Port    string
 }
 type ServerConfig struct {
+	Key  string
+	Port string
+}
+
+type WebsocketConfig struct {
 	Key  string
 	Port string
 }

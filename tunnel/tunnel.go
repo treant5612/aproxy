@@ -4,6 +4,7 @@ import (
 	"aproxy/filter"
 	"io"
 	"net"
+	"strings"
 )
 
 type Tunnel interface {
@@ -33,7 +34,11 @@ func (c *Conf) NewTunnel(dstAddr string, dstPort string) (Tunnel, error) {
 		return NewLocalTunnel(dstAddr, dstPort)
 	}
 	if filter.Proxy(dstAddr) {
-		return NewRemoteTunnel(c.key, c.serverHost, c.serverPort, dstAddr, dstPort)
+		if strings.Contains(c.form, "tcp") {
+			return NewRemoteTunnel(c.key, c.serverHost, c.serverPort, dstAddr, dstPort)
+		} else if strings.Contains(c.form, "websocket") {
+			return NewWebSocketClient(c.key, c.serverHost, dstAddr, dstPort)
+		}
 	}
 	return NewLocalTunnel(dstAddr, dstPort)
 }
