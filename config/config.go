@@ -19,9 +19,13 @@ type Config struct {
 	Transporter     *TunnelConfig
 	Server          *ServerConfig
 	WebsocketServer *WebsocketConfig
+	Forward         string
 }
 
 func (c *Config) Run() {
+	if c.Forward != "" {
+		tunnel.LocalTunnelConf.SocksForward = c.Forward
+	}
 	if c.Filter != "" {
 		if err := filter.Init(c.Filter); err != nil {
 			log.Printf("failed to use %s for proxy filter", c.Filter)
