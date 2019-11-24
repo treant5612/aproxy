@@ -4,22 +4,20 @@ import (
 	"aproxy/config"
 	"flag"
 	"log"
-	"os"
 )
 
 var configPath string
 
 func init() {
-	log.SetFlags(log.Llongfile | log.LstdFlags)
-	flag.StringVar(&configPath, "c", "config.json", "filepath of config.json")
+	log.SetFlags(log.LstdFlags)
+	flag.StringVar(&configPath, "c", "config.txt", "filepath of config")
 	flag.Parse()
 }
 
 func main() {
-	c, err := config.ParseConfigFromFile(configPath)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+	c := config.OpenConfig(configPath)
+	if c == nil {
+		return
 	}
 	c.Run()
 }

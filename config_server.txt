@@ -1,0 +1,12 @@
+#设置密钥以及端口
+
+[Server]
+	Key  =testkey
+	Port =10808
+[WebsocketServer]
+    Key=wskey
+    Port=80
+
+#下一级socks代理 比如向tor转发
+#[Forward]
+#    Address=localhost:9050

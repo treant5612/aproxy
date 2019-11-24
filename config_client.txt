@@ -1,0 +1,23 @@
+[Proxy]
+	# windows下是否修改系统代理设置
+	AutoProxy=false
+
+	## Filter指定需要代理的规则列表
+	Filter=gfwlist.txt
+
+	## SocksLocal 项设置为true时仅监听来自本机的代理请求
+	SocksLocal=false
+	
+	## 代理端口
+	SocksPort=10809
+
+[Tunnel]
+	## 数据传输类型 可选项为tcp/websocket 对应服务器配置中的Server/WebsocketServer
+	Type=websocket
+
+	## 加密密钥，取其hash作为aes加密的实际密钥
+	Key     =testkey
+
+	## 如果是websocket类型地址应当设置为 ws://host:port 如ws://192.168.137.1:80
+	Address =192.168.137.1
+	Port    =10808
