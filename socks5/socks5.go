@@ -1,10 +1,10 @@
 package socks5
 
 import (
-	"aproxy/tunnel"
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/treant5612/aproxy/tunnel"
 	"io"
 	"log"
 	"net"

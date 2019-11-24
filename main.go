@@ -1,8 +1,8 @@
 package main
 
 import (
-	"aproxy/config"
 	"flag"
+	"github.com/treant5612/aproxy/config"
 	"log"
 )
 

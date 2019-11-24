@@ -1,8 +1,8 @@
 package tunnel
 
 import (
-	"aproxy/encryption"
 	"fmt"
+	"github.com/treant5612/aproxy/encryption"
 	"io"
 	"net"
 	"strconv"

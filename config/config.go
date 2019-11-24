@@ -1,12 +1,12 @@
 package config
 
 import (
-	"aproxy/filter"
-	"aproxy/socks5"
-	"aproxy/tunnel"
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/treant5612/aproxy/filter"
+	"github.com/treant5612/aproxy/socks5"
+	"github.com/treant5612/aproxy/tunnel"
 	"io"
 	"log"
 	"net"

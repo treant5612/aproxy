@@ -1,7 +1,7 @@
 package tunnel
 
 import (
-	"aproxy/filter"
+	"github.com/treant5612/aproxy/filter"
 	"io"
 	"net"
 	"strings"
