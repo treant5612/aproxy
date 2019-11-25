@@ -30,7 +30,7 @@ nohup ./aproxy &
 
 使用aproxy -c 来生成客户端配置文件模板，修改其中的地址和key与服务端相对应之后直接运行即可。
 
-可与chrome插件SwitchyOmega配合使用。
+推荐与chrome插件SwitchyOmega配合使用。
 
 在windows下需要后台运行可以使用
 
@@ -90,4 +90,6 @@ powershell.exe -WindowStyle Hidden -c ./aproxy.exe
 
 #### 其它
 
-​	
+release中提供了一个已配置好暂时可用的版本。
+
+安卓/ios设备可以在wifi页面点击最右的`>`或`!`符号来配置一个局域网内的HTTP代理。
