@@ -75,7 +75,7 @@ func (c *Config) Run() {
 		})
 	}
 	if c.WebsocketServer != nil {
-		ws, _ := tunnel.NewWebsocketServer(c.WebsocketServer.Key, "/")
+		ws, _ := tunnel.NewWebsocketServer(c.WebsocketServer.Key, "/ws")
 		wg.Add(1)
 		go keepRun(&wg, func() {
 			ws.ListenWs(net.JoinHostPort(anyHost, c.WebsocketServer.Port))
