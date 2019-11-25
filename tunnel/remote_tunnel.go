@@ -102,6 +102,12 @@ func NewEncodeReadWriter(rw io.ReadWriter, key string) (erw *EncodeReadWriter, e
 	return erw, nil
 }
 func (e *EncodeReadWriter) Read(p []byte) (n int, err error) {
+	defer func() {
+		e := recover()
+		if e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
 	//缓冲区中没有数据
 	if e.buf == nil || len(e.buf) == 0 {
 		lenInfo := [4]byte{}
@@ -125,6 +131,12 @@ func (e *EncodeReadWriter) Read(p []byte) (n int, err error) {
 
 }
 func (e *EncodeReadWriter) Write(p []byte) (n int, err error) {
+	defer func() {
+		e := recover()
+		if e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
 	writing := p
 	if e.encipher != nil {
 		writing = e.encipher.Encrypt(p)
