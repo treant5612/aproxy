@@ -23,13 +23,16 @@ func NewWebsocketServer(key string, pattern string) (*WebsocketServer, error) {
 
 func (s *WebsocketServer) ListenWs(address string) {
 	if s.pattern == "" {
-		s.pattern = "/"
+		s.pattern = "/ws"
 	}
 	if address == "" {
 		address = "0.0.0.0:80"
 	}
 	log.Printf("listening websocket on %s", address)
 	http.HandleFunc(s.pattern, s.handleFunc)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello"))
+	})
 	http.ListenAndServe(address, nil)
 }
 
