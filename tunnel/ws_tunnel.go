@@ -28,6 +28,7 @@ func (s *WebsocketServer) ListenWs(address string) {
 	if address == "" {
 		address = "0.0.0.0:80"
 	}
+	log.Printf("listening websocket on %s", address)
 	http.HandleFunc(s.pattern, s.handleFunc)
 	http.ListenAndServe(address, nil)
 }

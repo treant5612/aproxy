@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/treant5612/aproxy/encryption"
 	"io"
+	"log"
 	"net"
 	"strconv"
 )
@@ -25,6 +26,7 @@ func (s *RemoteTunnelServer) ListenAndServe(network string, address string) (err
 	if err != nil {
 		return err
 	}
+	log.Printf("listening on %s\n", address)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
