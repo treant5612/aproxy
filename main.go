@@ -6,18 +6,35 @@ import (
 	"log"
 )
 
-var configPath string
+var configPath, key string
+var genClientConf, genServerConf bool
 
 func init() {
 	log.SetFlags(log.LstdFlags)
-	flag.StringVar(&configPath, "c", "config.txt", "filepath of config")
+	flag.StringVar(&configPath, "conf", "config.txt", "run with specified config \n default ./config.txt")
+	flag.BoolVar(&genClientConf, "c", false, "create a client config template")
+	flag.BoolVar(&genServerConf, "s", false, "create a server config template")
+	flag.StringVar(&key, "key", "defaultKey", "specify a key while creating config.txt")
 	flag.Parse()
 }
 
 func main() {
+	genConfig()
 	c := config.OpenConfig(configPath)
 	if c == nil {
 		return
 	}
 	c.Run()
+}
+
+func genConfig() {
+	if !genServerConf && !genClientConf {
+		return
+	}
+	confType := 1
+	if genClientConf {
+		confType = 0
+	}
+	config.GenerateConfig(confType, key)
+
 }

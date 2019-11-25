@@ -68,7 +68,10 @@ func (c *Config) Run() {
 		server := tunnel.NewRemoteTunnelServer(c.Server.Key)
 		wg.Add(1)
 		go keepRun(&wg, func() {
-			server.ListenAndServe("tcp", net.JoinHostPort(anyHost, c.Server.Port))
+			if err := server.ListenAndServe("tcp", net.JoinHostPort(anyHost, c.Server.Port)); err != nil {
+				log.Println(err)
+			}
+
 		})
 	}
 	if c.WebsocketServer != nil {
@@ -90,7 +93,9 @@ func keepRun(wg *sync.WaitGroup, f func()) {
 	for ok {
 		func() {
 			defer func() {
-				log.Println(recover())
+				if err := recover(); err != nil {
+					log.Println(err)
+				}
 				if time.Since(t) > time.Hour {
 					t = time.Now()
 				} else {
