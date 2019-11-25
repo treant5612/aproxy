@@ -19,7 +19,9 @@ func init() {
 }
 
 func main() {
-	genConfig()
+	if genConfig() {
+		return
+	}
 	c := config.OpenConfig(configPath)
 	if c == nil {
 		return
@@ -27,14 +29,14 @@ func main() {
 	c.Run()
 }
 
-func genConfig() {
+func genConfig() bool {
 	if !genServerConf && !genClientConf {
-		return
+		return false
 	}
 	confType := 1
 	if genClientConf {
 		confType = 0
 	}
 	config.GenerateConfig(confType, key)
-
+	return true
 }
