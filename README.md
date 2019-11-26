@@ -65,8 +65,8 @@ powershell.exe -WindowStyle Hidden -c ./aproxy.exe
 	## 加密密钥，取其hash作为aes加密的实际密钥
 	Key     =defaultKey
 	
-	## 如果是websocket类型地址应当设置为 ws://aproxy.club/ws 
-	Address =ws://aproxy.club/ws
+	## 如果是websocket类型地址应当设置为 ws://host:port/ws 
+	Address =ws://192.168.137.1:80/ws
 	Port    =80
 ```
 
@@ -90,6 +90,6 @@ powershell.exe -WindowStyle Hidden -c ./aproxy.exe
 
 #### 其它
 
-release中提供了一个已配置好暂时可用的版本。
+release中提供了一个暂时可用的客户端配置。
 
 安卓/ios设备可以在wifi页面点击最右的`>`或`!`符号来配置一个局域网内的HTTP代理。
