@@ -40,28 +40,34 @@ func (c *Config) Run() {
 		transConf = tunnel.NewTunnelConf(c.Tunnel.Type, c.Tunnel.Key, c.Tunnel.Address, c.Tunnel.Port)
 	}
 	if c.Proxy != nil {
+		if c.Proxy.AutoProxy {
+			SetWindowsProxy(c.Proxy.SocksPort)
+		} else {
+			UnsetWindowProxy()
+		}
+		socks := socks5.NewServer("", transConf)
+		listenAddr := anyHost
+		if c.Proxy.SocksLocal {
+			listenAddr = "localhost"
+		}
+		wg.Add(1)
+		go keepRun(&wg, func() {
+			socks.ListenAndServe("tcp", net.JoinHostPort(listenAddr, c.Proxy.SocksPort))
+		})
 		//初始化url过滤
 		if c.Proxy.Filter != "" {
-			if err = filter.Init(c.Proxy.Filter); err != nil {
-				log.Printf("failed to use %s as filter:%v", c.Proxy.Filter, err)
-			} else {
-				log.Printf("use %s as filter\n", c.Proxy.Filter)
-			}
-			if c.Proxy.AutoProxy {
-				SetWindowsProxy(c.Proxy.SocksPort)
-			} else {
-				UnsetWindowProxy()
-			}
-			socks := socks5.NewServer("", transConf)
-			listenAddr := anyHost
-			if c.Proxy.SocksLocal {
-				listenAddr = "localhost"
-			}
-			wg.Add(1)
-			go keepRun(&wg, func() {
-				socks.ListenAndServe("tcp", net.JoinHostPort(listenAddr, c.Proxy.SocksPort))
-			})
+			go func() {
+				if c.Proxy.Filter == filter.DefaultGfwlist {
+					filter.UpdateGfwlist(fmt.Sprintf("http://localhost:%s", c.Proxy.SocksPort))
+				}
+				if err = filter.Init(c.Proxy.Filter); err != nil {
+					log.Printf("failed to use %s as filter:%v", c.Proxy.Filter, err)
+				} else {
+					log.Printf("use %s as filter\n", c.Proxy.Filter)
+				}
+			}()
 		}
+
 	}
 
 	if c.Server != nil {

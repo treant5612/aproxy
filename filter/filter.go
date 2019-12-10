@@ -3,17 +3,27 @@ package filter
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
+	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 )
 
 var pacListMap map[string][0]byte
 
 var initialization bool = false
+var initLock sync.RWMutex
 
 func Init(filepath string) error {
+	initLock.Lock()
+	defer initLock.Unlock()
 	if initialization {
 		return nil
 	}
@@ -193,4 +203,50 @@ func hash(str string) uint {
 		n = n*primeRK + uint(v)
 	}
 	return n
+}
+
+var gfwlistUrl = "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
+var DefaultGfwlist = "gfwlist.txt"
+
+func UpdateGfwlist(proxyUrl string) {
+	updateGfwlist(proxyUrl)
+}
+
+func updateGfwlist(proxyUrl string) {
+	if !shouldUpdateGfwlist(DefaultGfwlist) {
+		return
+	}
+	log.Println("start downloading gfwlist.txt...")
+	proxy := func(_ *http.Request) (*url.URL, error) {
+		return url.Parse(proxyUrl)
+	}
+	transport := &http.Transport{Proxy: proxy}
+	httpClient := http.Client{Transport: transport}
+
+	url := "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	decoder := base64.NewDecoder(base64.StdEncoding, resp.Body)
+	f, err := os.Create(DefaultGfwlist)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	io.Copy(f, decoder)
+	log.Println("download gfwlist.txt complete!")
+}
+
+//check if necessary to update gfwlist file
+func shouldUpdateGfwlist(fileName string) bool {
+	stat, _ := os.Stat(fileName)
+	if stat == nil {
+		return true //file not exist
+	}
+	if time.Since(stat.ModTime()) > time.Hour*24*7 {
+		return true
+	}
+	return false
 }
